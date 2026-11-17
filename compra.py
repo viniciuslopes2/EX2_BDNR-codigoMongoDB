@@ -31,6 +31,44 @@ def buscar_produto_por_nome(nome):
     return produto
 
 
+def montar_item(produto, quantidade):
+    vendedor = db.vendedor.find_one({"_id": produto.get("vendedor_id")}) or {}
+    return {
+        "produto_id": produto["_id"],
+        "nome": produto.get("nome"),
+        "descricao": produto.get("descricao"),
+        "vendedor": vendedor.get("nome"),
+        "quantidade": quantidade,
+        "preco_unitario": produto["preco"]
+    }
+
+
+def montar_usuario(usuario):
+    return {
+        "nome": usuario.get("nome"),
+        "sobrenome": usuario.get("sobrenome"),
+        "cpf": usuario.get("cpf"),
+        "email": usuario.get("email")
+    }
+
+
+def mostrar_compra(c):
+    u = c.get("usuario", {})
+    print("-" * 40)
+    print("Compra:", c["_id"])
+    print("Cliente:", u.get("nome", ""), u.get("sobrenome", ""),
+          "| CPF:", u.get("cpf", ""), "| E-mail:", u.get("email", ""))
+    if not c.get("itens"):
+        print("  (sem itens)")
+    for i in c.get("itens", []):
+        print("  -", i.get("nome") or "(produto removido)", "|", i.get("descricao") or "-",
+              "| Vendedor:", i.get("vendedor") or "-",
+              "| Qtd:", i["quantidade"],
+              "| Preço un.: R$", i["preco_unitario"],
+              "| Subtotal: R$", i["quantidade"] * i["preco_unitario"])
+    print("Total: R$", c.get("valor_total", 0))
+
+
 def ler_itens():
     itens = []
     key = "S"
@@ -42,11 +80,7 @@ def ler_itens():
 
         quantidade = int(input("Quantidade: "))
 
-        item = {
-            "produto_id": produto["_id"],
-            "quantidade": quantidade,
-            "preco_unitario": produto["preco"]
-        }
+        item = montar_item(produto, quantidade)
         itens.append(item)
         key = input("Adicionar outro item (S/N)? ").upper()
 
@@ -70,6 +104,7 @@ def create_compra():
 
     compra = {
         "usuario_id": usuario["_id"],
+        "usuario": montar_usuario(usuario),
         "itens": itens,
         "valor_total": calcular_total(itens)
     }
@@ -88,7 +123,7 @@ def read_compra(nome_usuario=""):
     else:
         docs = col.find()
     for d in docs:
-        print(d)
+        mostrar_compra(d)
 
 
 def update_compra(compra_id):
@@ -101,7 +136,7 @@ def update_compra(compra_id):
         print("Nao encontrado")
         return
 
-    print(compra)
+    mostrar_compra(compra)
 
     key = input("Adicionar novos itens (S/N)? ").upper()
     if key == "S":
