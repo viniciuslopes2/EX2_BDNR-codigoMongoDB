@@ -54,7 +54,6 @@ def montar_usuario(usuario):
 
 def mostrar_compra(c):
     u = c.get("usuario", {})
-    print("-" * 40)
     print("Compra:", c["_id"])
     print("Cliente:", u.get("nome", ""), u.get("sobrenome", ""),
           "| CPF:", u.get("cpf", ""), "| E-mail:", u.get("email", ""))

@@ -14,6 +14,24 @@ def to_object_id(valor):
         return None
 
 
+def montar_vendedor(vendedor):
+    return {
+        "nome": vendedor.get("nome"),
+        "cpf_cnpj": vendedor.get("cpf_cnpj"),
+        "email": vendedor.get("email")
+    }
+
+
+def mostrar_produto(p):
+    v = p.get("vendedor", {})
+    print("-" * 40)
+    print("Produto:", p.get("nome"))
+    print("Descrição:", p.get("descricao"))
+    print("Preço: R$", p.get("preco"), "| Quantidade:", p.get("quantidade"))
+    print("Vendedor:", v.get("nome"), "| CPF/CNPJ:", v.get("cpf_cnpj"),
+          "| E-mail:", v.get("email"))
+
+
 def create_produto():
     nome = input("Nome: ")
     descricao = input("Descrição: ")
@@ -31,7 +49,8 @@ def create_produto():
         "descricao": descricao,
         "preco": preco,
         "quantidade": quantidade,
-        "vendedor_id": vendedor["_id"]
+        "vendedor_id": vendedor["_id"],
+        "vendedor": montar_vendedor(vendedor)
     }
 
     x = col.insert_one(produto)
@@ -45,7 +64,7 @@ def read_produto(nome=""):
     else:
         docs = col.find().sort("nome")
     for d in docs:
-        print(d)
+        mostrar_produto(d)
 
 
 def update_produto(nome):
@@ -54,7 +73,7 @@ def update_produto(nome):
         print("Nao encontrado")
         return
 
-    print(produto)
+    mostrar_produto(produto)
 
     nome = input("Novo nome: ")
     if len(nome):
