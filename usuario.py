@@ -36,7 +36,8 @@ def create_usuario():
         "cpf": cpf,
         "email": email,
         "senha": senha,
-        "enderecos": enderecos
+        "enderecos": enderecos,
+        "favoritos": []
     }
 
     x = col.insert_one(usuario)

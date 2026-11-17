@@ -1,18 +1,7 @@
-from bson.objectid import ObjectId
-from bson.errors import InvalidId
 from mymongo import db
 
-col = db.favorito
 col_usuario = db.usuario
 col_produto = db.produto
-
-
-def to_object_id(valor):
-    try:
-        return ObjectId(valor)
-    except InvalidId:
-        print("ID inválido")
-        return None
 
 
 def buscar_usuario_por_nome(nome):
@@ -31,24 +20,33 @@ def buscar_produto_por_nome(nome):
     return produto
 
 
+def montar_favorito(produto):
+    return {
+        "produto_id": produto["_id"],
+        "nome": produto["nome"],
+        "descricao": produto.get("descricao"),
+        "preco": produto.get("preco")
+    }
+
+
 def create_favorito():
-    nome_usuario = input("Nome do usuário: ")
-    usuario = buscar_usuario_por_nome(nome_usuario)
+    usuario = buscar_usuario_por_nome(input("Nome do usuário: "))
     if usuario is None:
         return
 
-    nome_produto = input("Nome do produto: ")
-    produto = buscar_produto_por_nome(nome_produto)
+    produto = buscar_produto_por_nome(input("Nome do produto: "))
     if produto is None:
         return
 
-    favorito = {
-        "usuario_id": usuario["_id"],
-        "produto_id": produto["_id"]
-    }
+    if any(f["produto_id"] == produto["_id"] for f in usuario.get("favoritos", [])):
+        print("Produto ja esta nos favoritos")
+        return
 
-    x = col.insert_one(favorito)
-    print("Inserido:", x.inserted_id)
+    r = col_usuario.update_one(
+        {"_id": usuario["_id"]},
+        {"$push": {"favoritos": montar_favorito(produto)}}
+    )
+    print("Alterados:", r.modified_count)
 
 
 def read_favorito(nome_usuario=""):
@@ -57,40 +55,44 @@ def read_favorito(nome_usuario=""):
         usuario = buscar_usuario_por_nome(nome_usuario)
         if usuario is None:
             return
-        docs = col.find({"usuario_id": usuario["_id"]})
+        usuarios = [usuario]
     else:
-        docs = col.find()
-    for d in docs:
-        print(d)
+        usuarios = col_usuario.find().sort("nome")
+    for u in usuarios:
+        print(u["nome"], u.get("sobrenome", ""), "->", u.get("favoritos", []))
 
 
-def update_favorito(favorito_id):
-    favorito_id = to_object_id(favorito_id)
-    if favorito_id is None:
+def update_favorito(nome_usuario):
+    usuario = buscar_usuario_por_nome(nome_usuario)
+    if usuario is None:
         return
 
-    favorito = col.find_one({"_id": favorito_id})
-    if favorito is None:
-        print("Nao encontrado")
+    antigo = buscar_produto_por_nome(input("Nome do produto favorito a trocar: "))
+    if antigo is None:
         return
 
-    print(favorito)
+    novo = buscar_produto_por_nome(input("Nome do novo produto: "))
+    if novo is None:
+        return
 
-    nome_produto = input("Novo nome do produto: ")
-    if len(nome_produto):
-        produto = buscar_produto_por_nome(nome_produto)
-        if produto is None:
-            return
-        favorito["produto_id"] = produto["_id"]
-
-    r = col.update_one({"_id": favorito["_id"]}, {"$set": favorito})
+    r = col_usuario.update_one(
+        {"_id": usuario["_id"], "favoritos.produto_id": antigo["_id"]},
+        {"$set": {"favoritos.$": montar_favorito(novo)}}
+    )
     print("Alterados:", r.modified_count)
 
 
-def delete_favorito(favorito_id):
-    favorito_id = to_object_id(favorito_id)
-    if favorito_id is None:
+def delete_favorito(nome_usuario):
+    usuario = buscar_usuario_por_nome(nome_usuario)
+    if usuario is None:
         return
 
-    r = col.delete_one({"_id": favorito_id})
-    print("Deletados:", r.deleted_count)
+    produto = buscar_produto_por_nome(input("Nome do produto: "))
+    if produto is None:
+        return
+
+    r = col_usuario.update_one(
+        {"_id": usuario["_id"]},
+        {"$pull": {"favoritos": {"produto_id": produto["_id"]}}}
+    )
+    print("Removidos:", r.modified_count)

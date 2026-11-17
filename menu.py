@@ -118,12 +118,12 @@ def menu_favorito():
             favorito.read_favorito()
 
         elif sub == '3':
-            id = input("ID: ")
-            favorito.update_favorito(id)
+            nome = input("Nome do usuário: ")
+            favorito.update_favorito(nome)
 
         elif sub == '4':
-            id = input("ID: ")
-            favorito.delete_favorito(id)
+            nome = input("Nome do usuário: ")
+            favorito.delete_favorito(nome)
 
 
 key = 0
